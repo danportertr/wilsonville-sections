@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wilsonville Neighborhood Sections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: url(images/layers.png);
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: url(images/layers-2x.png);
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: url(images/marker-icon.png);
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+
+</style>
+<style>
+:root {
+  /* Layout: field-map tool — list panel on the left, street map on the right; stacks on phones. */
+  --bg: #eef1f0;
+  --panel: #ffffff;
+  --ink: #1b2422;
+  --muted: #5d6b68;
+  --line: #d5dcda;
+  --accent: #0f6b5c;
+  --accent-soft: #d8ece7;
+  --map: #e6eae6;
+  --street: #ffffff;
+  --street-case: #c4ccc9;
+  --arterial: #f6d98a;
+  --arterial-case: #c9a64a;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121816; --panel: #19211f; --ink: #e4ebe9; --muted: #95a4a0; --line: #2c3633;
+    --accent: #5cc4ae; --accent-soft: #1f3a34; --map: #1b2321; --street: #3a4542; --street-case: #2a3331;
+    --arterial: #8a7434; --arterial-case: #5c4d22; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121816; --panel: #19211f; --ink: #e4ebe9; --muted: #95a4a0; --line: #2c3633;
+  --accent: #5cc4ae; --accent-soft: #1f3a34; --map: #1b2321; --street: #3a4542; --street-case: #2a3331;
+  --arterial: #8a7434; --arterial-case: #5c4d22; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font-body); }
+.app { display: grid; grid-template-columns: 380px 1fr; height: 100%; }
+.panel { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; }
+#map { background: var(--map); height: 100%; }
+header { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+h1 { font: 700 24px/1.1 var(--font-display); margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h2 { font: 600 19px/1.2 var(--font-display); margin: 0; text-wrap: balance; }
+.stats { display: flex; gap: 16px; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; flex-wrap: wrap; }
+.stats b { color: var(--ink); font-size: 16px; font-weight: 600; }
+.search { display: grid; gap: 6px; }
+.search label { font-size: 12px; color: var(--muted); }
+input[type=search] { width: 100%; padding: 9px 11px; font: inherit; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.results { display: grid; gap: 2px; }
+.results button { text-align: left; }
+.body { padding: 8px 12px 24px; display: grid; gap: 4px; align-content: start; }
+.nb { border-bottom: 1px solid var(--line); padding: 10px 8px; display: grid; gap: 8px; }
+.nb-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.nb-head span { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 13px var(--font-display); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 4px 7px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+.chip:hover { border-color: var(--accent); }
+.chip i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.chip small { font: 400 12px var(--font-body); color: var(--muted); }
+.linkbtn { background: none; border: none; color: var(--accent); font: 500 14px var(--font-body); cursor: pointer; padding: 6px 0; }
+.btn { font: 600 14px var(--font-body); background: var(--accent); color: var(--panel); border: none; border-radius: 8px; padding: 9px 12px; cursor: pointer; }
+.btn.ghost { background: var(--accent-soft); color: var(--ink); }
+.turf { padding: 16px 20px 24px; display: grid; gap: 14px; }
+.turf-head { display: grid; gap: 4px; }
+.turf-id { font: 700 34px/1 var(--font-display); letter-spacing: .02em; }
+.meta { color: var(--muted); font-size: 14px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.progress { height: 6px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; }
+.progress div { height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+.street { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 6px; }
+.street h3 { margin: 0; font: 600 15px var(--font-display); display: flex; justify-content: space-between; }
+.street h3 span { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.side { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.addrs { display: flex; flex-wrap: wrap; gap: 5px; }
+.addr { font: 500 13px var(--font-body); font-variant-numeric: tabular-nums; border: 1px solid var(--line); border-radius: 5px; padding: 3px 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.addr[aria-pressed="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); text-decoration: line-through; }
+.note { font-size: 12px; color: var(--muted); }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 2000; }
+.toast.on { opacity: 1; }
+.leaflet-container { background: var(--map); font-family: var(--font-body); }
+.leaflet-tooltip.st { background: transparent; border: none; box-shadow: none; color: var(--muted); font: 600 11px var(--font-display); letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 0 3px var(--map), 0 0 3px var(--map), 0 0 2px var(--map); padding: 0; }
+.leaflet-tooltip.st::before, .leaflet-tooltip.tl::before, .leaflet-tooltip.hn::before { display: none; }
+.leaflet-tooltip.tl { background: var(--panel); border: 1px solid var(--line); color: var(--ink); font: 700 12px var(--font-display); padding: 1px 5px; border-radius: 4px; box-shadow: none; }
+.leaflet-tooltip.hn { background: transparent; border: none; box-shadow: none; color: var(--ink); font: 600 10px var(--font-body); padding: 0; text-shadow: 0 0 3px var(--map), 0 0 3px var(--map); }
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 52% 48%; }
+  .panel { order: 2; border-right: none; border-top: 1px solid var(--line); }
+  #map { order: 1; }
+  header { padding: 12px 16px; }
+  .turf { padding: 12px 16px 24px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel" id="panel">
+    <header>
+      <h1>Wilsonville neighborhood sections</h1>
+      <div class="stats" id="stats"></div>
+      <div class="search">
+        <label for="q">Find an address or street</label>
+        <input id="q" type="search" placeholder="e.g. 29017 Villebois Dr or Barber St" autocomplete="off">
+        <div class="results" id="results"></div>
+      </div>
+    </header>
+    <div id="view"></div>
+  </aside>
+  <div id="map" role="region" aria-label="Map of sections"></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const PAGE_URL = location.origin + location.pathname;
+const PALETTE = ["#3b8ea5", "#e0a339", "#7a9e4a", "#c56b8a", "#8a6fc9", "#d9734e"];
+let D, ST, map, turfLayers = {}, homeLayer, labelLayer, selected = null;
+const byId = {};
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const pretty = (s) => s.replace(/^(SW|NE|NW|SE) /, "").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1800); }
+function store(key, val) { try { if (val === undefined) return JSON.parse(localStorage.getItem(key) || "null"); localStorage.setItem(key, JSON.stringify(val)); } catch (e) { return null; } }
+
+async function init() {
+  [D, ST] = await Promise.all([fetch("sections.json").then(r => r.json()), fetch("streets.json").then(r => r.json())]);
+  D.turfs.forEach(t => byId[t.id] = t);
+  const nHomes = D.turfs.reduce((a, t) => a + t.n, 0);
+  $("#stats").innerHTML = `<span><b>${nHomes.toLocaleString()}</b> homes</span><span><b>${D.turfs.length}</b> sections</span><span><b>${D.nbhds.length}</b> neighborhoods</span>`;
+
+  map = L.map("map", { zoomControl: true, attributionControl: true, preferCanvas: false, zoomSnap: 0.25 });
+  map.attributionControl.setPrefix(false).addAttribution("Tax lots &amp; streets: Oregon Metro RLIS, Nov 2026");
+  const cs = getComputedStyle(document.documentElement);
+  const c = (n) => cs.getPropertyValue(n).trim();
+  const streetsCanvas = L.canvas({ padding: 0.3 });
+  const minor = [], major = [], fwy = [];
+  ST.forEach(([nm, cls, lines]) => lines.forEach(l => {
+    const ll = l.map(p => [p[1], p[0]]);
+    (cls === 0 ? fwy : cls === 1 ? major : minor).push(ll);
+  }));
+  L.polyline(minor, { renderer: streetsCanvas, color: c("--street-case"), weight: 5, interactive: false }).addTo(map);
+  L.polyline(minor, { renderer: streetsCanvas, color: c("--street"), weight: 3, interactive: false }).addTo(map);
+  L.polyline(major.concat(fwy), { renderer: streetsCanvas, color: c("--arterial-case"), weight: 8, interactive: false }).addTo(map);
+  L.polyline(major.concat(fwy), { renderer: streetsCanvas, color: c("--arterial"), weight: 5.5, interactive: false }).addTo(map);
+
+  const bounds = L.latLngBounds([]);
+  D.turfs.forEach(t => {
+    const col = PALETTE[t.c % PALETTE.length];
+    const lyr = L.geoJSON(t.geom, { style: { color: col, weight: 1.5, fillColor: col, fillOpacity: 0.32, opacity: 0.9 } });
+    lyr.bindTooltip(`${t.id} · ${t.n} homes`, { sticky: true });
+    lyr.on("click", () => go(t.id));
+    lyr.addTo(map);
+    turfLayers[t.id] = lyr;
+    bounds.extend(lyr.getBounds());
+    t.col = col;
+  });
+  D.bounds = bounds;
+  labelLayer = L.layerGroup().addTo(map);
+  homeLayer = L.layerGroup().addTo(map);
+  map.on("zoomend moveend", drawLabels);
+  window.addEventListener("hashchange", route);
+  $("#q").addEventListener("input", search);
+  route();
+}
+
+function route() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (byId[id]) showTurf(id); else showOverview();
+}
+function go(id) { if (location.hash.slice(1) === id) route(); else location.hash = id; }
+
+function showOverview() {
+  selected = null;
+  Object.entries(turfLayers).forEach(([id, l]) => l.setStyle({ fillOpacity: 0.32, weight: 1.5 }));
+  homeLayer.clearLayers();
+  map.fitBounds(D.bounds, { padding: [10, 10] });
+  const html = D.nbhds.map(nb => `
+    <section class="nb">
+      <div class="nb-head"><h2>${esc(nb.name)}</h2><span>${nb.homes.toLocaleString()} homes · ${nb.turfs.length} section${nb.turfs.length > 1 ? "s" : ""}</span></div>
+      <div class="chips">${nb.turfs.map(id => { const t = byId[id]; const done = doneCount(id); return `<button class="chip" data-id="${id}"><i style="background:${t.col}"></i>${id}<small>${t.n}${done ? ` · ${done}✓` : ""}</small></button>`; }).join("")}</div>
+    </section>`).join("");
+  $("#view").innerHTML = `<div class="body">${html}<p class="note" style="padding:8px">Neighborhoods are split along I-5, the Willamette River and the main arterials, and sections keep both sides of a street together where possible. Tap a section for its walk list and a link you can send to a volunteer.</p></div>`;
+  $("#view").querySelectorAll(".chip").forEach(b => b.onclick = () => go(b.dataset.id));
+  $("#panel").scrollTop = 0;
+  drawLabels();
+}
+
+function doneCount(id) { const s = store("done-" + id); return s ? Object.keys(s).length : 0; }
+
+function showTurf(id) {
+  const t = byId[id]; selected = id;
+  Object.entries(turfLayers).forEach(([k, l]) => l.setStyle(k === id ? { fillOpacity: 0.22, weight: 3.5 } : { fillOpacity: 0.08, weight: 1 }));
+  map.fitBounds(turfLayers[id].getBounds(), { padding: [24, 24], maxZoom: 18 });
+  homeLayer.clearLayers();
+  t.homes.forEach(([lat, lon, num, st]) => {
+    L.circleMarker([lat, lon], { radius: 4, color: "#1b2422", weight: 1, fillColor: t.col, fillOpacity: 1 })
+      .bindTooltip(`${num} ${pretty(st)}`).addTo(homeLayer);
+  });
+  const done = store("done-" + id) || {};
+  const groups = {};
+  t.homes.forEach(([lat, lon, num, st]) => (groups[st] = groups[st] || []).push(num));
+  const nb = D.nbhds.find(n => n.turfs.includes(id));
+  const idx = nb.turfs.indexOf(id);
+  const streetsHtml = Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([st, nums]) => {
+    const n = (x) => parseInt(x, 10);
+    nums.sort((a, b) => n(a) - n(b));
+    const odd = nums.filter(x => n(x) % 2), even = nums.filter(x => !(n(x) % 2));
+    const btns = (arr) => arr.map(x => `<button class="addr" data-k="${esc(x + " " + st)}" aria-pressed="${done[x + " " + st] ? "true" : "false"}">${esc(x)}</button>`).join("");
+    return `<div class="street"><h3>${esc(pretty(st))}<span>${nums.length}</span></h3>
+      ${odd.length ? `<div class="side">Odd side</div><div class="addrs">${btns(odd)}</div>` : ""}
+      ${even.length ? `<div class="side">Even side</div><div class="addrs">${btns(even)}</div>` : ""}</div>`;
+  }).join("");
+  $("#view").innerHTML = `<div class="turf">
+    <div class="actions"><button class="linkbtn" id="back">← All sections</button>
+      ${idx > 0 ? `<button class="linkbtn" id="prev">‹ ${nb.turfs[idx - 1]}</button>` : ""}
+      ${idx < nb.turfs.length - 1 ? `<button class="linkbtn" id="next">${nb.turfs[idx + 1]} ›</button>` : ""}</div>
+    <div class="turf-head"><div class="turf-id">${id}</div>
+      <div class="meta">${esc(t.nbhd)} · <b>${t.n}</b> homes · ${Object.keys(groups).length} streets</div></div>
+    <div class="actions"><button class="btn" id="copy">Copy link to this section</button></div>
+    <div><div class="meta" id="prog"></div><div class="progress"><div id="bar"></div></div>
+      <p class="note">Tap an address to mark it visited. Marks stay on this device only.</p></div>
+    ${streetsHtml}</div>`;
+  $("#back").onclick = () => { location.hash = ""; };
+  if ($("#prev")) $("#prev").onclick = () => go(nb.turfs[idx - 1]);
+  if ($("#next")) $("#next").onclick = () => go(nb.turfs[idx + 1]);
+  $("#copy").onclick = async () => {
+    const link = (PAGE_URL.startsWith("http") ? PAGE_URL : location.href.split("#")[0]) + "#" + id;
+    try { await navigator.clipboard.writeText(link); toast("Link copied"); } catch (e) { toast(link); }
+  };
+  const prog = () => { const k = Object.keys(done).length; $("#prog").textContent = `${k} of ${t.n} visited`; $("#bar").style.width = (100 * k / t.n) + "%"; };
+  prog();
+  $("#view").querySelectorAll(".addr").forEach(b => b.onclick = () => {
+    const k = b.dataset.k; if (done[k]) delete done[k]; else done[k] = 1;
+    b.setAttribute("aria-pressed", done[k] ? "true" : "false"); store("done-" + id, done); prog();
+  });
+  $("#panel").scrollTop = 0;
+  drawLabels();
+}
+
+function drawLabels() {
+  labelLayer.clearLayers();
+  const z = map.getZoom(), vb = map.getBounds().pad(0.05);
+  if (!selected) {
+    if (z >= 14) D.turfs.forEach(t => {
+      const c = turfLayers[t.id].getBounds().getCenter();
+      if (vb.contains(c)) L.tooltip({ permanent: true, direction: "center", className: "tl" }).setLatLng(c).setContent(t.id).addTo(labelLayer);
+    });
+    return;
+  }
+  const t = byId[selected];
+  const tb = turfLayers[selected].getBounds().pad(0.4);
+  const want = new Set(t.streets.map(s => pretty(s[0]).toUpperCase()));
+  const best = {};
+  ST.forEach(([nm, cls, lines]) => {
+    const key = pretty("SW " + nm).toUpperCase();
+    if (!want.has(key) && !(cls <= 1 && z >= 16)) return;
+    lines.forEach(l => {
+      for (let i = 0; i < l.length - 1; i++) {
+        const a = L.latLng(l[i][1], l[i][0]), b = L.latLng(l[i + 1][1], l[i + 1][0]);
+        const m = L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2);
+        if (!tb.contains(m)) continue;
+        const len = a.distanceTo(b);
+        if (!best[key] || len > best[key].len) best[key] = { len, m };
+      }
+    });
+  });
+  Object.entries(best).forEach(([k, v]) => L.tooltip({ permanent: true, direction: "center", className: "st" }).setLatLng(v.m).setContent(k).addTo(labelLayer));
+  if (z >= 17.5) {
+    const placed = [];
+    t.homes.forEach(([lat, lon, num]) => {
+      const p = map.latLngToContainerPoint([lat, lon]);
+      if (placed.some(q => Math.abs(q.x - p.x) < 38 && Math.abs(q.y - p.y) < 13)) return;
+      placed.push(p);
+      L.tooltip({ permanent: true, direction: "right", offset: [4, 0], className: "hn" }).setLatLng([lat, lon]).setContent(num).addTo(labelLayer);
+    });
+  }
+}
+
+function search() {
+  const q = $("#q").value.trim().toUpperCase().replace(/^(SW|NE) /, "");
+  const out = $("#results");
+  if (q.length < 3) { out.innerHTML = ""; return; }
+  const hits = [];
+  for (const t of D.turfs) {
+    for (const [lat, lon, num, st] of t.homes) {
+      const full = (num + " " + st.replace(/^(SW|NE) /, ""));
+      if (full.includes(q) || st.replace(/^(SW|NE) /, "").includes(q)) { hits.push([t.id, num, st]); }
+    }
+  }
+  const streetMode = /^\D/.test(q);
+  let rows;
+  if (streetMode) {
+    const agg = {};
+    hits.forEach(([id, num, st]) => { const k = st + "|" + id; agg[k] = (agg[k] || 0) + 1; });
+    rows = Object.entries(agg).slice(0, 12).map(([k, n]) => { const [st, id] = k.split("|"); return `<button class="chip" data-id="${id}">${id}<small>${esc(pretty(st))} · ${n}</small></button>`; });
+  } else {
+    rows = hits.slice(0, 8).map(([id, num, st]) => `<button class="chip" data-id="${id}">${id}<small>${esc(num)} ${esc(pretty(st))}</small></button>`);
+  }
+  out.innerHTML = rows.length ? `<div class="chips">${rows.join("")}</div>` : `<span class="note">No single-family homes match “${esc($("#q").value)}”.</span>`;
+  out.querySelectorAll(".chip").forEach(b => b.onclick = () => { go(b.dataset.id); });
+}
+init().catch(e => { $("#view").innerHTML = `<p style="padding:20px">The map data didn't load (${esc(e.message)}). Reload the page to try again.</p>`; });
+</script>
+</body>
+</html>
